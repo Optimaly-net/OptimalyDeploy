@@ -13,10 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
       - name: Run ShellCheck
-        uses: koalaman/shellcheck-action@v0.9.0
-        with:
-          scandir: deploy
+        run: shellcheck deploy/scripts/*.sh deploy/install/*.sh
 
   validate-configs:
     name: Validate JSON configs
