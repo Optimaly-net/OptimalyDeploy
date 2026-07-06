@@ -45,6 +45,11 @@ on:
         required: false
         type: string
         default: ""
+    secrets:
+      MISTRAL_API_KEY:
+        required: false
+      SMTP_PASSWORD:
+        required: false
 
 jobs:
   prepare:
