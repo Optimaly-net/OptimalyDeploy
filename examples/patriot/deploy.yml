@@ -40,7 +40,7 @@ jobs:
     uses: Optimaly-net/OptimalyDeploy/.github/workflows/deploy-reusable.yml@v1
     with:
       target: patriot-production
-      run_tests: false
+      github_environment: production
     secrets: inherit
 
   deploy-manual:
@@ -49,5 +49,5 @@ jobs:
     uses: Optimaly-net/OptimalyDeploy/.github/workflows/deploy-reusable.yml@v1
     with:
       target: ${{ inputs.target }}
-      run_tests: false
+      github_environment: production
     secrets: inherit

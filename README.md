@@ -49,6 +49,20 @@ Born from production use at [Optimaly](https://optimaly.net) (Patriot, SladkaPoh
 
 **One runner per deploy server**, not one global agent. The universal part is the **framework** — scripts, workflow, conventions.
 
+### Engine delivery (option A)
+
+The deploy **engine is not installed on the VPS**. Each pipeline run:
+
+1. Checks out **your app repo** (Dockerfile, compose, config)
+2. Checks out **OptimalyDeploy `@v1`** into `.optimaly-deploy/`
+3. Runs `.optimaly-deploy/deploy/scripts/deploy.sh` with your app config JSON
+
+**Persistent on the server:** runner (systemd), `/srv/docker/<app>/`, `secrets/.env`, Docker volumes.
+
+**Per run:** fresh engine from Git, `docker build`, compose recreate, health check.
+
+Pin `framework_ref: v1` in the workflow (or omit — default is `v1`). Bump the tag when you want all apps to pick up script fixes.
+
 ---
 
 ## Quick start

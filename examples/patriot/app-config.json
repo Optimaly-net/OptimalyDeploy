@@ -1,5 +1,4 @@
 {
-  "$schema": "../../deploy/schema/app-config.schema.json",
   "id": "patriot-production",
   "projectCode": "patriot",
   "environment": "production",

@@ -40,6 +40,11 @@ on:
         required: false
         type: string
         default: ""
+      github_environment:
+        description: GitHub environment for deploy job (e.g. production). Leave empty to skip.
+        required: false
+        type: string
+        default: ""
 
 jobs:
   prepare:
@@ -86,6 +91,7 @@ jobs:
     name: Deploy ${{ inputs.target }}
     needs: prepare
     runs-on: ${{ fromJson(needs.prepare.outputs.runner_labels) }}
+    environment: ${{ inputs.github_environment }}
     steps:
       - uses: actions/checkout@v4
 
@@ -118,6 +124,9 @@ jobs:
       - name: Run deploy
         env:
           OPT_SERVERS_FILE: ${{ github.workspace }}/${{ inputs.servers_config }}
+          # Map repo secrets referenced in app config secretsFromEnv (secrets: inherit on caller)
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           .optimaly-deploy/deploy/scripts/deploy.sh \
             "${{ github.workspace }}/${{ needs.prepare.outputs.app_config }}"
