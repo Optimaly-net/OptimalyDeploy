@@ -1,0 +1,37 @@
+{
+  "$schema": "../../deploy/schema/app-config.schema.json",
+  "id": "slp-production",
+  "projectCode": "slp",
+  "environment": "production",
+  "server": "slp-prod",
+  "repository": "Optimaly-net/SladkaPohotovost",
+  "branch": "main",
+  "concurrencyGroup": "slp-production",
+  "stackPath": "/srv/slp",
+  "composeFile": "docker-compose.yml",
+  "versionVar": "SLP_VERSION",
+  "images": [
+    { "name": "slp-hub", "dockerfile": "src/ConnectonHub/Dockerfile", "context": "src" },
+    { "name": "slp-web", "dockerfile": "src/Presentation/Nop.Web/Dockerfile", "context": "src" },
+    { "name": "slp-dashboard", "dockerfile": "src/Nop.Dashboard/Dockerfile", "context": "src" }
+  ],
+  "services": ["slp-hub", "slp-web", "slp-dashboard"],
+  "healthCheck": {
+    "network": "slp-net",
+    "url": "http://slp-caddy/",
+    "hostHeader": "sladkapohotovost.optimaly.net",
+    "timeoutSeconds": 15,
+    "minCode": 200,
+    "maxCode": 499,
+    "retries": 3,
+    "retryDelaySeconds": 5
+  },
+  "hooks": {
+    "preDeploy": ".github/deploy/hooks/ensure-plugin-install.sh"
+  },
+  "postDeploy": {
+    "waitSeconds": 10,
+    "pruneImagesHours": 72
+  },
+  "publicUrl": "https://sladkapohotovost.optimaly.net"
+}

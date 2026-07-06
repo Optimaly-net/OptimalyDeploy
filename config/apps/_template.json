@@ -1,0 +1,50 @@
+{
+  "$schema": "../deploy/schema/app-config.schema.json",
+  "id": "myapp-production",
+  "projectCode": "myapp",
+  "environment": "production",
+  "server": "example-prod",
+  "repository": "your-org/your-repo",
+  "branch": "main",
+  "concurrencyGroup": "myapp-production",
+  "stackPath": "/srv/docker/myapp",
+  "composeFile": "docker-compose.yml",
+  "versionVar": "APP_VERSION",
+  "composeProfiles": [],
+  "secretsFile": "secrets/.env",
+  "secretsFromEnv": ["API_KEY", "SMTP_PASSWORD"],
+  "envFile": {
+    "copyFrom": "secrets/.env",
+    "copyTo": ".env"
+  },
+  "stackAssets": [
+    { "src": "deploy/docker-compose.yml", "dest": "docker-compose.yml" },
+    { "src": "deploy/caddy/Caddyfile", "dest": "caddy/Caddyfile" }
+  ],
+  "images": [
+    {
+      "name": "myapp-web",
+      "dockerfile": "Dockerfile",
+      "context": "."
+    }
+  ],
+  "services": ["myapp-web"],
+  "healthCheck": {
+    "network": "myapp_myapp-net",
+    "url": "http://myapp-web:8080/health",
+    "timeoutSeconds": 30,
+    "minCode": 200,
+    "maxCode": 299,
+    "retries": 6,
+    "retryDelaySeconds": 5
+  },
+  "hooks": {
+    "preDeploy": ".github/deploy/hooks/pre-deploy.sh",
+    "postDeploy": ".github/deploy/hooks/post-deploy.sh"
+  },
+  "postDeploy": {
+    "waitSeconds": 15,
+    "pruneImagesHours": 72
+  },
+  "publicUrl": "https://app.example.com"
+}

@@ -1,0 +1,123 @@
+# Reusable deploy workflow for OptimalyDeploy.
+# Tests run on ubuntu-latest in YOUR repo workflow — NOT on self-hosted runner.
+
+name: Deploy (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: App config id — file at app_config_dir/<target>.json
+        required: true
+        type: string
+      app_config_dir:
+        description: Directory with app JSON configs (relative to repo root)
+        required: false
+        type: string
+        default: .github/deploy/config/apps
+      servers_config:
+        description: Path to servers.json (relative to repo root)
+        required: false
+        type: string
+        default: .github/deploy/config/servers.json
+      framework_ref:
+        description: OptimalyDeploy git ref (tag recommended)
+        required: false
+        type: string
+        default: v1
+      run_tests:
+        description: Run dotnet tests on self-hosted runner (usually false — use ubuntu-latest job instead)
+        required: false
+        type: boolean
+        default: false
+      test_solution:
+        description: Path to .sln for optional on-runner tests
+        required: false
+        type: string
+        default: ""
+      test_projects_glob:
+        description: Glob for test csproj files (e.g. tests/MyApp.*.Tests/*.csproj)
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  prepare:
+    name: Resolve deploy target
+    runs-on: ubuntu-latest
+    outputs:
+      runner_labels: ${{ steps.cfg.outputs.runner_labels }}
+      app_config: ${{ steps.cfg.outputs.app_config }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load config
+        id: cfg
+        env:
+          TARGET: ${{ inputs.target }}
+          APP_CONFIG_DIR: ${{ inputs.app_config_dir }}
+          SERVERS_CONFIG: ${{ inputs.servers_config }}
+        run: |
+          set -euo pipefail
+          APP_CONFIG="${APP_CONFIG_DIR}/${TARGET}.json"
+
+          if [[ ! -f "$APP_CONFIG" ]]; then
+            echo "ERROR: Unknown target '$TARGET' — create $APP_CONFIG" >&2
+            exit 1
+          fi
+          if [[ ! -f "$SERVERS_CONFIG" ]]; then
+            echo "ERROR: servers.json not found at $SERVERS_CONFIG" >&2
+            exit 1
+          fi
+
+          SERVER_KEY="$(jq -r '.server' "$APP_CONFIG")"
+          LABELS="$(jq -c --arg s "$SERVER_KEY" '.servers[$s].runnerLabels' "$SERVERS_CONFIG")"
+
+          if [[ "$LABELS" == "null" ]]; then
+            echo "ERROR: Server '$SERVER_KEY' not in $SERVERS_CONFIG" >&2
+            exit 1
+          fi
+
+          echo "runner_labels=$LABELS" >> "$GITHUB_OUTPUT"
+          echo "app_config=$APP_CONFIG" >> "$GITHUB_OUTPUT"
+          echo "Target: $TARGET → server $SERVER_KEY → labels $LABELS"
+
+  deploy:
+    name: Deploy ${{ inputs.target }}
+    needs: prepare
+    runs-on: ${{ fromJson(needs.prepare.outputs.runner_labels) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: Optimaly-net/OptimalyDeploy
+          ref: ${{ inputs.framework_ref }}
+          path: .optimaly-deploy
+
+      - uses: actions/setup-dotnet@v4
+        if: inputs.run_tests && inputs.test_solution != ''
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Run unit tests (on-runner — avoid unless necessary)
+        if: inputs.run_tests && inputs.test_solution != ''
+        run: |
+          if [[ -n "${{ inputs.test_projects_glob }}" ]]; then
+            dotnet restore "${{ inputs.test_solution }}"
+            for proj in ${{ inputs.test_projects_glob }}; do
+              dotnet test "$proj" -c Release --no-restore
+            done
+          else
+            dotnet test "${{ inputs.test_solution }}" -c Release
+          fi
+
+      - name: Make scripts executable
+        run: chmod +x .optimaly-deploy/deploy/scripts/*.sh
+
+      - name: Run deploy
+        env:
+          OPT_SERVERS_FILE: ${{ github.workspace }}/${{ inputs.servers_config }}
+        run: |
+          .optimaly-deploy/deploy/scripts/deploy.sh \
+            "${{ github.workspace }}/${{ needs.prepare.outputs.app_config }}"

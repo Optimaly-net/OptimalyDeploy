@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: koalaman/shellcheck-action@v0.9.0
+        with:
+          scandir: deploy
+
+  validate-configs:
+    name: Validate JSON configs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check JSON syntax
+        run: |
+          set -e
+          for f in config/**/*.json examples/**/*.json; do
+            [[ -f "$f" ]] || continue
+            echo "→ $f"
+            jq empty "$f"
+          done
+
+      - name: Validate examples against schema fields
+        run: |
+          set -e
+          for f in examples/*/app-config.json config/apps/_template.json; do
+            echo "→ $f"
+            jq -e '.id and .server and .stackPath and .images and .services and .healthCheck.url' "$f" >/dev/null
+          done

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Optimaly-net/OptimalyDeploy/deploy/schema/servers.schema.json",
+  "title": "OptimalyDeploy servers registry",
+  "type": "object",
+  "required": ["servers"],
+  "properties": {
+    "servers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["runnerLabels", "deployMode"],
+        "properties": {
+          "description": { "type": "string" },
+          "hostname": { "type": "string" },
+          "runnerLabels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "deployMode": {
+            "type": "string",
+            "enum": ["build-on-runner", "build-on-ci-deploy-remote"]
+          }
+        }
+      }
+    }
+  }
+}

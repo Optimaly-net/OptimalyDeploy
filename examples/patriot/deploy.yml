@@ -1,0 +1,53 @@
+# Patriot — production deploy (battle-tested 2026-07-06)
+# Run #28795025728 green in ~2m20s
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Deploy target
+        required: true
+        type: choice
+        options: [patriot-production]
+        default: patriot-production
+
+concurrency:
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && inputs.target || 'patriot-production' }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Run unit tests
+        run: |
+          dotnet restore src/Patriot.sln
+          for proj in tests/Patriot.*.Tests/*.csproj; do
+            dotnet test "$proj" -c Release --no-restore
+          done
+
+  deploy-auto:
+    if: github.event_name == 'push'
+    needs: test
+    uses: Optimaly-net/OptimalyDeploy/.github/workflows/deploy-reusable.yml@v1
+    with:
+      target: patriot-production
+      run_tests: false
+    secrets: inherit
+
+  deploy-manual:
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+    uses: Optimaly-net/OptimalyDeploy/.github/workflows/deploy-reusable.yml@v1
+    with:
+      target: ${{ inputs.target }}
+      run_tests: false
+    secrets: inherit

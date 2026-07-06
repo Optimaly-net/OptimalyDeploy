@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "example-prod": {
+      "description": "Example production server — replace with your host",
+      "hostname": "app.example.com",
+      "runnerLabels": ["self-hosted", "linux", "x64", "server-example"],
+      "deployMode": "build-on-runner"
+    }
+  }
+}

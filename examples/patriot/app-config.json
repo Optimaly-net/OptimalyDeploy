@@ -1,0 +1,58 @@
+{
+  "$schema": "../../deploy/schema/app-config.schema.json",
+  "id": "patriot-production",
+  "projectCode": "patriot",
+  "environment": "production",
+  "server": "patriot-prod",
+  "repository": "Optimaly-net/Patriot",
+  "branch": "main",
+  "concurrencyGroup": "patriot-production",
+  "stackPath": "/srv/docker/patriot",
+  "composeFile": "docker-compose.yml",
+  "versionVar": "PATRIOT_VERSION",
+  "composeProfiles": ["app"],
+  "secretsFile": "secrets/.env",
+  "secretsFromEnv": ["MISTRAL_API_KEY", "SMTP_PASSWORD"],
+  "secretMappings": [
+    { "from": "MISTRAL_API_KEY", "to": "Inference__Mistral__ApiKey" },
+    { "from": "SMTP_PASSWORD", "to": "SmtpMail__Password" },
+    { "from": "ENCRYPTION_MASTER_KEY_BASE64", "to": "Encryption__MasterKeyBase64" },
+    { "from": "JWT_SIGNING_KEY", "to": "Jwt__SigningKey" }
+  ],
+  "requiredSecrets": [
+    "MISTRAL_API_KEY",
+    "SMTP_PASSWORD",
+    "ENCRYPTION_MASTER_KEY_BASE64",
+    "JWT_SIGNING_KEY"
+  ],
+  "envFile": {
+    "copyFrom": "secrets/.env",
+    "copyTo": ".env"
+  },
+  "stackAssets": [
+    { "src": "deploy/docker-compose.yml", "dest": "docker-compose.yml" },
+    { "src": "deploy/caddy/Caddyfile", "dest": "caddy/Caddyfile" }
+  ],
+  "images": [
+    {
+      "name": "patriot-web",
+      "dockerfile": "Dockerfile",
+      "context": "."
+    }
+  ],
+  "services": ["patriot-web"],
+  "healthCheck": {
+    "container": "patriot-web",
+    "url": "http://localhost:8080/health",
+    "timeoutSeconds": 15,
+    "maxAttempts": 12,
+    "retryDelaySeconds": 5,
+    "minCode": 200,
+    "maxCode": 299
+  },
+  "postDeploy": {
+    "waitSeconds": 60,
+    "pruneImagesHours": 72
+  },
+  "publicUrl": "https://app.patriot.optimaly.net"
+}

@@ -1,0 +1,31 @@
+# Minimal deploy workflow — add this to your app repository.
+#
+# Prerequisites:
+#   1. Self-hosted runner on your server (see OptimalyDeploy deploy/install/)
+#   2. .github/deploy/config/servers.json
+#   3. .github/deploy/config/apps/<target>.json
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Deploy target
+        required: true
+        type: string
+        default: myapp-production
+
+concurrency:
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && inputs.target || 'myapp-production' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    uses: Optimaly-net/OptimalyDeploy/.github/workflows/deploy-reusable.yml@v1
+    with:
+      target: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'myapp-production' }}
+      test_solution: src/MyApp.sln
+    secrets: inherit
