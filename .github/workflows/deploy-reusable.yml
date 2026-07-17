@@ -50,6 +50,9 @@ on:
         required: false
       SMTP_PASSWORD:
         required: false
+      # App-specific keys must be declared here — undeclared caller secrets cause startup_failure.
+      LINKUP_API_KEY:
+        required: false
 
 jobs:
   prepare:
@@ -129,9 +132,10 @@ jobs:
       - name: Run deploy
         env:
           OPT_SERVERS_FILE: ${{ github.workspace }}/${{ inputs.servers_config }}
-          # Map repo secrets referenced in app config secretsFromEnv (secrets: inherit on caller)
+          # Map repo secrets referenced in app config secretsFromEnv (declare each in workflow_call.secrets)
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          LINKUP_API_KEY: ${{ secrets.LINKUP_API_KEY }}
         run: |
           .optimaly-deploy/deploy/scripts/deploy.sh \
             "${{ github.workspace }}/${{ needs.prepare.outputs.app_config }}"

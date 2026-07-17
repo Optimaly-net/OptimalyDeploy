@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Declare `LINKUP_API_KEY` in reusable deploy `workflow_call` secrets and pass it into `deploy.sh` env (Patriot Linkup web search). Callers that pass undeclared secrets were failing with Actions `startup_failure`.
+
 ## v1.0.0 — 2026-07-06
 
 Initial public release — extracted from battle-tested Patriot production deploy.
