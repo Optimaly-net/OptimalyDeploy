@@ -20,13 +20,28 @@ fi
 
 cd "$REPO_ROOT"
 
+VERSION_LABEL="$(read_version_label)"
+COMMIT_HASH="${GITHUB_SHA:-}"
+if [[ -z "$COMMIT_HASH" ]]; then
+  COMMIT_HASH="$(git rev-parse HEAD 2>/dev/null || true)"
+fi
+COMMIT_SHORT="${COMMIT_HASH:0:7}"
+[[ -z "$COMMIT_SHORT" ]] && COMMIT_SHORT="unknown"
+if [[ "$VERSION_LABEL" == "unknown" && "$COMMIT_SHORT" != "unknown" ]]; then
+  VERSION_LABEL="$COMMIT_SHORT"
+fi
+
 mapfile -t images < <(jq -c '.images[]' "$APP_CONFIG")
 for image_spec in "${images[@]}"; do
   name="$(echo "$image_spec" | jq -r '.name')"
   dockerfile="$(echo "$image_spec" | jq -r '.dockerfile')"
   context="$(echo "$image_spec" | jq -r '.context')"
 
-  build_args=()
+  build_args=(
+    --build-arg "GIT_VERSION=${VERSION_LABEL}"
+    --build-arg "GIT_COMMIT_HASH=${COMMIT_SHORT}"
+    --build-arg "${VERSION_VAR}=${VERSION_LABEL}"
+  )
   while IFS= read -r arg; do
     [[ -n "$arg" ]] && build_args+=(--build-arg "$arg")
   done < <(jq -r '.buildArgs[]? // empty' <<< "$image_spec")
@@ -34,6 +49,7 @@ for image_spec in "${images[@]}"; do
   echo "→ Building $name"
   echo "  dockerfile: $dockerfile"
   echo "  context:    $context"
+  echo "  version:    $VERSION_LABEL ($COMMIT_SHORT)"
   docker build \
     "${build_args[@]}" \
     -f "$dockerfile" \
